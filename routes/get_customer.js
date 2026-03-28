@@ -12,15 +12,17 @@ router.get("/api/customers/:phone", (req, res) => {
             return res.status(500).json({ error: err.message });
         }
 
-        if (results.length === 0) {
-            return res.status(404).json({
+        if (results.length > 0) {
+            return res.json({
+                status: "success",
+                data: results[0],
+            });
+        }else {
+        res.json({
+                status: "not_found",
                 message: "ไม่พบข้อมูล กรุณาตรวจสอบเบอร์",
             });
         }
-
-        res.json({
-            data: results[0],
-        });
     });
 });
 
