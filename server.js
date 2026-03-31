@@ -13,7 +13,11 @@ import post_order from "./routes/post_order.js";
 import crud_menu_nosql from "./routes/crud_menu_nosql.js";
 import post_order_nosql from "./routes/post_order_nosql.js";
 import get_report_nosql from "./routes/get_report_nosql.js"
-
+import patch_order from "./routes/patch_order.js";
+import get_barista_orders from "./routes/get_barista_orders.js";
+import post_note from "./routes/post_note.js";
+import put_note from "./routes/put_note.js";
+import delete_note from "./routes/delete_note.js";
 
 const app = express();
 app.use(cors());
@@ -31,6 +35,12 @@ app.use(post_order);
 app.use(crud_menu_nosql);
 app.use(post_order_nosql);
 app.use(get_report_nosql);
+app.use(patch_order);
+app.use(get_barista_orders);
+app.use(post_note);
+app.use(put_note);
+app.use(delete_note);
+
 
 
 app.listen(3000, () => {

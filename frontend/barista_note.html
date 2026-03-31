@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barista Board - คิวชงน้ำและโน้ตช่วยจำ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #1976D2;
+            --light-blue: #E3F2FD;
+            --text-color: #333;
+            --bg-white: #FFFFFF;
+            --border-color: #BBDEFB;
+            --danger-red: #D32F2F;
+            --success-green: #388E3C;
+        }
+        * { box-sizing: border-box; font-family: 'Kanit', sans-serif; }
+        body { background-color: var(--light-blue); margin: 0; padding: 20px; color: var(--text-color); }
+        .main-wrapper { max-width: 1400px; margin: 0 auto; }
+        
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid var(--primary-blue); padding-bottom: 15px; background-color: var(--bg-white); border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .header h1 { margin: 0; color: var(--primary-blue); font-weight: 500; }
+        
+        .board-container { display: flex; gap: 20px; align-items: flex-start; }
+        .orders-section { flex: 3; }
+        .notes-section { flex: 1; background-color: var(--bg-white); padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-top: 5px solid var(--primary-blue); position: sticky; top: 20px;}
+        .notes-section h2 { margin-top: 0; color: var(--primary-blue); text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        
+        .order-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .order-card { background-color: var(--bg-white); border-radius: 15px; padding: 20px; box-shadow: 0 6px 10px rgba(0,0,0,0.1); border: 1px solid var(--border-color); transition: transform 0.2s; }
+        .order-card:hover { transform: translateY(-5px); }
+        .order-header { display: flex; justify-content: space-between; font-size: 1.3em; color: var(--primary-blue); font-weight: bold; border-bottom: 2px solid var(--light-blue); padding-bottom: 10px; margin-bottom: 15px; }
+        .item-list { margin: 0; padding-left: 20px; color: #555; margin-bottom: 15px; }
+        
+        .remark-box { background-color: #FFEBEE; color: var(--danger-red); padding: 10px; border-radius: 8px; font-size: 0.95em; border-left: 4px solid var(--danger-red); margin-bottom: 15px; }
+        .btn-complete { background-color: var(--success-green); color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; font-size: 1.1em; font-weight: bold;}
+        .btn-complete:hover { background-color: #2E7D32; }
+        
+        .add-note-form { display: flex; gap: 10px; margin-bottom: 20px; }
+        .add-note-form input { flex: 1; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1em; }
+        .btn-add-note { background-color: var(--primary-blue); color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: bold;}
+        
+        #notes-container { display: flex; flex-direction: column; gap: 10px; }
+        
+        /* สไตล์สำหรับโน้ตทั่วไป */
+        .note-card { background-color: #E3F2FD; padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary-blue); font-size: 1em; position: relative; box-shadow: 2px 2px 5px rgba(0,0,0,0.05); }
+        .badge-general { font-size: 0.75em; color: var(--primary-blue); font-weight: bold; display: block; margin-bottom: 5px; }
+        
+        /* สไตล์สำหรับโน้ตที่มาจากบิล */
+        .note-order-card { background-color: #FFEBEE; padding: 15px; border-radius: 8px; border-left: 4px solid var(--danger-red); font-size: 1em; position: relative; box-shadow: 2px 2px 5px rgba(0,0,0,0.05); }
+        .badge-order { font-size: 0.75em; color: var(--danger-red); font-weight: bold; display: block; margin-bottom: 5px; }
+
+        .btn-action { position: absolute; top: 5px; background: none; border: none; cursor: pointer; font-size: 1.1em; padding: 2px; }
+        .btn-delete { right: 5px; color: #AAA; }
+        .btn-delete:hover { color: var(--danger-red); }
+        .btn-edit { right: 30px; color: #AAA; }
+        .btn-edit:hover { color: var(--primary-blue); }
+    </style>
+</head>
+<body>
+
+    <div class="main-wrapper">
+        <div class="header">
+            <h1>☕ Barista Board & Notes</h1>
+        </div>
+
+        <div class="board-container">
+            <div class="orders-section">
+                <div class="order-grid" id="order-grid">
+                    <p style="text-align:center;">กำลังโหลดคิว...</p>
+                </div>
+            </div>
+
+            <div class="notes-section">
+                <h2>📌 โน้ตช่วยจำ</h2>
+                <div class="add-note-form">
+                    <input type="text" id="note-input" placeholder="พิมพ์ข้อความโน้ตใหม่ที่นี่...">
+                    <button class="btn-add-note" onclick="addNote()">เพิ่ม</button>
+                </div>
+                <div id="notes-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchBoardData() {
+            try {
+                const response = await fetch('http://localhost:3000/api/barista/board');
+                const data = await response.json();
+                renderOrders(data.orders);
+                renderNotes(data.notes, data.orders); // ส่ง orders ไปให้วาดโน้ตด้วย
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // 1. วาดการ์ดบิลชงน้ำ
+        function renderOrders(orders) {
+            const grid = document.getElementById('order-grid');
+            grid.innerHTML = ''; 
+
+            if (orders.length === 0) {
+                grid.innerHTML = '<div style="text-align:center; color:#AAA; margin:40px auto; width:100%;">ไม่มีคิวรอชง</div>';
+                return;
+            }
+
+            orders.forEach(order => {
+                let itemsHtml = '';
+                if(order.items) {
+                    order.items.forEach(item => {
+                        itemsHtml += `<li>${item.menu_name} (ไซส์: ${item.size})</li>`;
+                    });
+                }
+
+                let remarkHtml = '';
+                if (order.remark && order.remark.trim() !== '') {
+                    remarkHtml = `<div class="remark-box">หมายเหตุ: ${order.remark}</div>`;
+                }
+
+                grid.innerHTML += `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <span>บิล #${order.order_id}</span>
+                            <span style="font-size:0.8em; color:#AAA;">#คิวที่ ${order.order_id}</span>
+                        </div>
+                        <ul class="item-list">${itemsHtml}</ul>
+                        ${remarkHtml}
+                        <button class="btn-complete" onclick="completeOrder(${order.order_id})">✅ ชงเสร็จแล้ว</button>
+                    </div>
+                `;
+            });
+        }
+
+        // 2. วาดโน้ตฝั่งขวา (รวมทั้งโน้ตบิล และ โน้ตทั่วไป)
+        // ฟังก์ชันวาดโน้ต (ใช้ข้อมูลจากตาราง barista_notes ล้วนๆ)
+        function renderNotes(notes) {
+            const container = document.getElementById('notes-container');
+            container.innerHTML = '';
+
+            if (!notes || notes.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#AAA;">ไม่มีโน้ตในขณะนี้ พิมพ์เพิ่มด้านบนได้เลย!</p>';
+                return;
+            }
+
+            notes.forEach(note => {
+                // เช็คว่าโน้ตนี้ส่งมาจากบิลหรือเปล่า (ดูจากคำว่า "จากบิล #") เพื่อแยกสีให้สวยงาม
+                const isFromOrder = note.note.includes("จากบิล #:");
+                const cardClass = isFromOrder ? "note-order-card" : "note-card";
+                const badgeHtml = isFromOrder 
+                    ? `<span class="badge-order">หมายเหตุบิล</span>` 
+                    : `<span class="badge-general">โน้ตทั่วไป</span>`;
+
+                container.innerHTML += `
+                    <div class="${cardClass}">
+                        <button class="btn-action btn-delete" onclick="deleteNote(${note.note_id})">✕</button>
+                        <button class="btn-action btn-edit" onclick="editNote(${note.note_id}, '${note.note}')">✎</button>
+                        ${badgeHtml}
+                        ${note.note}
+                    </div>
+                `;
+            });
+        }
+
+        // --- ฟังก์ชันฝั่ง Order ---
+        async function completeOrder(orderId) {
+            await fetch(`http://localhost:3000/api/orders/${orderId}/status`, {
+                method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'completed' })
+            });
+            fetchBoardData();
+        }
+
+        async function editOrderRemark(orderId, oldRemark) {
+            const newRemark = prompt(`แก้ไขหมายเหตุบิล #${orderId}`, oldRemark);
+            if (newRemark !== null && newRemark.trim() !== "") {
+                await fetch(`http://localhost:3000/api/orders/${orderId}/remark`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ remark: newRemark })
+                });
+                fetchBoardData();
+            }
+        }
+
+        async function deleteOrderRemark(orderId) {
+            if (confirm(`ต้องการลบหมายเหตุของบิล #${orderId} ใช่ไหม?`)) {
+                await fetch(`http://localhost:3000/api/orders/${orderId}/remark`, { method: 'DELETE' });
+                fetchBoardData();
+            }
+        }
+
+        // --- ฟังก์ชันฝั่ง Note ทั่วไป ---
+        async function addNote() {
+            const message = document.getElementById('note-input').value;
+            if (!message.trim()) return alert('กรุณาพิมพ์ข้อความ');
+            await fetch('http://localhost:3000/api/notes', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message })
+            });
+            document.getElementById('note-input').value = '';
+            fetchBoardData();
+        }
+
+        async function editNote(noteId, oldNote) {
+            const newNote = prompt("แก้ไขโน้ตทั่วไป", oldNote);
+            if (newNote !== null && newNote.trim() !== "") {
+                await fetch(`http://localhost:3000/api/notes/${noteId}`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: newNote })
+                });
+                fetchBoardData();
+            }
+        }
+
+        async function deleteNote(noteId) {
+            if (confirm('ยืนยันลบโน้ตใบนี้?')) {
+                await fetch(`http://localhost:3000/api/notes/${noteId}`, { method: 'DELETE' });
+                fetchBoardData();
+            }
+        }
+
+        fetchBoardData();
+        setInterval(fetchBoardData, 5000); // รีเฟรชทุก 5 วินาที
+    </script>
+</body>
+</html>

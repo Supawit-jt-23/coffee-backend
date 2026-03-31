@@ -134,11 +134,15 @@ async function checkoutReal() {
     if (cart.length === 0) return alert("ตะกร้าว่างเปล่า");
     if (!currentCustomer) return alert("กรุณาค้นหาลูกค้าก่อนชำระเงิน");
 
+    // 1. ดึงข้อความหมายเหตุจากหน้าจอ
+    const remark = document.getElementById('order-remark').value;
+
     try {
         const res = await fetch('http://localhost:3000/api/orders', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ customer_id: currentCustomer.customer_id, items: cart }) 
+            // 2. แนบ remark ส่งไปให้ Backend
+            body: JSON.stringify({ customer_id: currentCustomer.customer_id, items: cart, remark: remark }) 
         });
         const data = await res.json();
         
@@ -149,6 +153,7 @@ async function checkoutReal() {
             currentCustomer = null; 
             document.getElementById('customer-info').classList.add('hidden');
             document.getElementById('search-phone').value = '';
+            document.getElementById('order-remark').value = ''; // 3. เคลียร์ช่องหมายเหตุ
         } else { 
             alert('เกิดข้อผิดพลาด: ' + data.error); 
         }
@@ -156,6 +161,7 @@ async function checkoutReal() {
         alert('ติดต่อเซิร์ฟเวอร์ไม่ได้'); 
     }
 }
+
 
 loadData();
 renderCart();
